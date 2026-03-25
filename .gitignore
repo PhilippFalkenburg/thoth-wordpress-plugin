@@ -1,2 +1,8 @@
-/vendor/
-/composer.lock
+/.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# Note: `vendor/` and `composer.lock` are bundled for plugin distribution
+# and therefore intentionally tracked in this repository.

@@ -189,3 +189,9 @@ Technische Speicherung:
 
 - Delta-Sync über WP-Cron
 - Export-Logik zurück zu Thoth
+
+## Third-Party Licenses
+
+- Bundled dependency: `thoth-pub/thoth-client-php` (Apache-2.0). Their license and NOTICE files are included under `vendor/` where present. When redistributing, keep those license/NOTICE files intact to preserve attribution.
+
+Proudly vibe coded!
