@@ -1,0 +1,25 @@
+{
+  "name": "thoth-pub/thoth-wordpress-plugin",
+  "description": "WordPress plugin scaffold for integrating Thoth data.",
+  "type": "project",
+  "require": {
+    "php": ">=7.4",
+    "thoth-pub/thoth-client-php": "dev-main"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/thoth-pub/thoth-client-php.git"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "ThothWordPressPlugin\\": "src/"
+    }
+  },
+  "scripts": {
+    "smoke": "php bin/smoke.php"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
