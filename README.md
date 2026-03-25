@@ -1,21 +1,21 @@
-# Thoth WordPress Plugin (Phase 1.1)
+# Thoth WordPress Plugin
 
-Dieses Verzeichnis enthält das Phase-1-Grundgerüst für ein WordPress-Plugin, das auf `thoth-client-php` als Referenz- und Client-Bibliothek aufsetzt.
+This directory contains the Thoth WordPress plugin source code, including bundled PHP dependencies (such as `thoth-client-php`) in `vendor/`, so no separate sibling repository is required.
 
-## Struktur
+## Structure
 
-- `thoth-wordpress-plugin.php`: Plugin-Bootstrap für WordPress
-- `src/Plugin.php`: zentrale Plugin-Initialisierung
-- `src/Admin/SettingsPage.php`: Admin-Einstellungsseite unter **Einstellungen > Thoth Data** mit manuellem Sync
-- `src/PostType/PublicationPostType.php`: Registrierung von `thoth_publication`
-- `src/Import/WorkImporter.php`: Importservice (Upsert von Works aus Thoth)
-- `src/Sync/SyncManager.php`: geplanter Sync (WP-Cron), Cursor-Offset und Sync-Log
-- `src/Metadata/NestedMetadataMapper.php`: Normalisierung verschachtelter Metadaten
-- `src/Admin/PublicationMetaBox.php`: editierbare Metabox mit wiederholbaren Feldern für verschachtelte Metadaten
-- `composer.json`: Einbindung des Referenz-Clients über das offizielle Git-Repository
-- `bin/smoke.php`: kleiner CLI-Smoke-Test für Autoload/Klassen
+- `thoth-wordpress-plugin.php`: WordPress plugin bootstrap
+- `src/Plugin.php`: central plugin initialization
+- `src/Admin/SettingsPage.php`: admin settings page under **Settings > Thoth Data**, including manual sync
+- `src/PostType/PublicationPostType.php`: registration of `thoth_publication`
+- `src/Import/WorkImporter.php`: import service (upsert for Thoth works)
+- `src/Sync/SyncManager.php`: scheduled sync (WP-Cron), cursor offset handling, and sync log
+- `src/Metadata/NestedMetadataMapper.php`: normalization of nested metadata
+- `src/Admin/PublicationMetaBox.php`: editable metabox with repeatable fields for nested metadata
+- `composer.json`: dependency setup using the official Thoth client repository
+- `bin/smoke.php`: small CLI smoke test for autoload/class availability
 
-## Lokales Setup
+## Local Setup
 
 ```bash
 cd /Users/phil/code/THOTH_Plugin/thoth-wordpress-plugin
@@ -23,101 +23,72 @@ composer install
 composer run smoke
 ```
 
-Es ist kein zusätzlicher benachbarter Ordner `thoth-client-php` mehr erforderlich.
+## Using the Plugin in WordPress
 
-## In WordPress verwenden
+1. Place the `thoth-wordpress-plugin` folder in `wp-content/plugins/`.
+2. Activate the **Thoth Data Connector** plugin.
+3. Configure the basic settings under **Settings > Thoth Data**.
+4. Optionally start a manual import via **Sync now**.
 
-1. Plugin-Ordner `thoth-wordpress-plugin` in `wp-content/plugins/` bereitstellen.
-2. Plugin **Thoth Data Connector** aktivieren.
-3. Unter **Einstellungen > Thoth Data** die Basis-Konfiguration setzen.
-4. Optional den manuellen Import über **Jetzt synchronisieren** starten.
+## REST Exposure
 
-## REST Exposition
-
-- Der CPT `thoth_publication` ist über die WordPress REST API verfügbar:
+- The `thoth_publication` custom post type is available through the WordPress REST API:
   - `/wp-json/wp/v2/thoth_publication`
-- Die registrierten `_thoth_*` Meta-Felder sind öffentlich lesbar (REST read), damit Frontends die Metadaten direkt konsumieren können.
-- Schreibzugriffe auf Inhalte bleiben weiterhin an Edit-Rechte im WordPress-Backend gebunden.
+- Registered `_thoth_*` meta fields are publicly readable (REST read), so frontend applications can consume metadata directly.
+- Write operations remain restricted to users with edit permissions in WordPress.
 
-Für `thoth_publication` ist der Standard-Blockeditor deaktiviert. Die manuelle Pflege erfolgt über Metaboxen (Basisfelder + Nested Metadata).
-Das native obere Titel-Feld (`Add title`) ist für diesen Post Type ebenfalls deaktiviert; die Titelpflege läuft über `Full Title` im Abschnitt **Basic Metadata**.
+For `thoth_publication`, the default block editor is disabled. Manual editing is handled via metaboxes (basic fields + nested metadata).
+The native top title field (`Add title`) is also disabled for this post type; title editing is handled through `Full Title` in the **Basic Metadata** section.
 
-Unter **Einstellungen > Thoth Data** können Felder und Bereiche für die Editor-UI ein-/ausgeblendet werden.
-Wichtig: Diese Option beeinflusst nur die Darstellung; ausgeblendete Felder behalten ihren vorhandenen Datenbestand.
-Pflichtfelder bleiben immer aktiv, und abhängige Felder werden nur als Gruppe geschaltet (z. B. `First Page` + `Last Page` als `Page Range`).
+Under **Settings > Thoth Data**, fields and sections can be shown/hidden in the editor UI.
+Important: this only affects visibility; hidden fields keep their existing data.
+Required fields always remain enabled, and dependent fields are toggled only as a group (for example, `First Page` + `Last Page` as `Page Range`).
 
-Die Basisfelder decken jetzt einen erweiterten Thoth-Work-Kern ab (u. a. Work Type/Status, Imprint, DOI, Publication-Date, License, Landing Page, Counts, Notes).
-Feldlabels und Eingabefelder enthalten englische Mouseover-Tooltips (`title`), um die Thoth-Bedeutung direkt in der UI sichtbar zu machen.
+The basic field set now covers an extended Thoth work core (including work type/status, imprint, DOI, publication date, license, landing page, counts, and notes).
+Field labels and inputs include English hover tooltips (`title`) to make Thoth semantics visible directly in the UI.
 
-Zusätzlich gibt es einen Bereich **Related Works** mit:
+The **Related Works** section includes:
 
 - `relatedWorkId` (UUID)
-- `relationType` (Thoth-Relationstyp)
-- `relationOrdinal` (Reihenfolge)
+- `relationType` (Thoth relation type)
+- `relationOrdinal` (ordering)
 
-Der Bereich **Related Works** unterstützt zusätzlich einen lokalen Lookup über vorhandene `thoth_publication`-Datensätze:
+The **Related Works** section also provides a local lookup against existing `thoth_publication` records:
 
-- Suche nach Titel oder Work ID direkt in der Zeile.
-- Auswahl übernimmt automatisch `relatedWorkId`.
-- Direkter Link **Open related work** öffnet den verknüpften Datensatz im Bearbeitungsmodus.
-- Optionale Checkbox **Automatically maintain inverse relations** setzt beim Speichern Gegenrelationen (z. B. `is_part_of` ↔ `has_part`).
-- Duplikat-Schutz verhindert doppelte Gegenrelationen auf Ziel-Datensätzen.
-- Nach dem Speichern erscheint eine Info-Notice mit Zählern (`added`/`removed`) für angewendete Gegenrelationen.
+- Search by title or work ID directly in the row.
+- Selection automatically writes `relatedWorkId`.
+- Direct **Open related work** link opens the linked record in edit mode.
+- Optional checkbox **Automatically maintain inverse relations** applies inverse relations on save (for example, `is_part_of` ↔ `has_part`).
+- Duplicate protection prevents duplicate inverse relations on target records.
+- After save, an info notice shows counters (`added`/`removed`) for applied inverse relations.
 
-Weitere ergänzte Bereiche/Felder:
+Additional expanded sections/fields:
 
 - **Languages** (`languageCode`, `languageRelation`, `mainLanguage`)
-- **Fundings** um `jurisdiction` erweitert
+- **Fundings** extended with `jurisdiction`
 - **Publications** (`publicationType`, `isbn`, `width`, `height`, `depth`, `weight`)
 - **Issues** (`issueId`, `issueNumber`, `issueOrdinal`)
 - **Series** (`seriesId`, `seriesName`, `seriesOrdinal`)
 - **Contributor Affiliations** (`contributionId`, `contributorId`, `institutionId`, `institutionName`, `position`, `affiliationOrdinal`)
 
-## Was Phase 1 bereits kann
+## Features (Current)
 
-- Registriert den Custom Post Type `thoth_publication`
-- Importiert Works über `ThothApi\GraphQL\Client::works()`
-- Führt Upserts aus (neu/aktualisiert/übersprungen)
-- Speichert das vollständige Thoth-Payload als JSON in `_thoth_payload`
-- Speichert technische Metadaten: `_thoth_work_id`, `_thoth_doi`, `_thoth_checksum`, `_thoth_last_synced_at`
+- Registers the `thoth_publication` custom post type.
+- Imports Thoth records via the bundled client (`thoth-client-php`) and performs upserts (new/updated/skipped).
+- Stores the full Thoth payload as JSON in `_thoth_payload` and technical metadata in `_thoth_work_id`, `_thoth_doi`, `_thoth_checksum`, `_thoth_last_synced_at`.
+- Runs scheduled sync via WP-Cron with admin visibility for last sync and next run.
+- Supports cursor/windowed sync (`limit` + `offset`) with a sync log for previous runs.
+- Generates structured, reusable fields for nested metadata (for example, `_thoth_nested_contributors`, `_thoth_nested_subjects`, `_thoth_nested_fundings`, `_thoth_nested_issues`, `_thoth_nested_series`) plus flattened indexes (`_thoth_contributor_names`, `_thoth_subject_codes`, `_thoth_funding_programs`).
+- Provides a metabox with an advanced mode for toggling technical fields, visual section grouping, responsive UI, and inline validation for format errors.
 
-## Was Phase 1.1 ergänzt
+## Conflict Mode (Import vs Manual Edits)
 
-- Plant einen stündlichen WP-Cron-Job bei Plugin-Aktivierung
-- Führt Syncs mit Cursor-Offset aus (windowed Import über `limit` + `offset`)
-- Zeigt im Admin den Zeitpunkt der letzten Synchronisierung
-- Zeigt den nächsten geplanten Cron-Lauf
-- Speichert und zeigt ein Sync-Log (letzte Läufe mit Kennzahlen)
+Under **Settings > Thoth Data**, the conflict strategy can be configured:
 
-## Phase-2-Auftakt: verschachtelte Metadaten
+- **Protect manual edits (default):** records with manual changes are not overwritten during import.
+- **Import overwrites manual edits:** import can replace local changes.
 
-Der Import speichert jetzt zusätzlich strukturierte Felder für spätere Edit-/Exportlogik:
-
-- `_thoth_nested_contributors` (JSON)
-- `_thoth_nested_subjects` (JSON)
-- `_thoth_nested_fundings` (JSON)
-- `_thoth_nested_issues` (JSON)
-- `_thoth_nested_series` (JSON)
-- `_thoth_contributor_names` (flattened Index-String)
-- `_thoth_subject_codes` (flattened Index-String)
-- `_thoth_funding_programs` (flattened Index-String)
-
-Hinweis: Diese Felder werden robust aus dem Payload extrahiert, falls die entsprechenden Arrays vorhanden sind. Das kanonische Payload in `_thoth_payload` bleibt weiterhin die primäre Quelle.
-
-Die Metabox unterstützt jetzt zusätzlich einen optionalen Advanced-Modus, um technische Felder (z. B. IDs) pro Bereich ein- oder auszublenden.
-
-Zusätzlich enthält die Metabox jetzt visuelle Abschnittsboxen, responsives Verhalten für kleinere Screens und Feldhinweise (z. B. ORCID/UUID-Format).
-
-Bei Formatfehlern zeigt die Metabox direkt Inline-Feedback pro Feld und verhindert das Speichern, bis die markierten Eingaben korrigiert sind.
-
-## Konfliktmodus (Import vs. manuelle Bearbeitung)
-
-Unter **Einstellungen > Thoth Data** kann die Konfliktstrategie gewählt werden:
-
-- **Manuelle Änderungen schützen (Standard):** Datensätze mit manueller Änderung werden beim Import nicht überschrieben.
-- **Import überschreibt manuelle Änderungen:** Import kann lokale Anpassungen ersetzen.
-
-Verwendete technische Flags:
+Technical flags used:
 
 - `_thoth_manual_override`
 - `_thoth_manual_updated_at`
@@ -125,73 +96,71 @@ Verwendete technische Flags:
 - `_thoth_import_payload`
 - `_thoth_import_checksum`
 
-Das Sync-Log zeigt zusätzlich, wie viele Datensätze wegen manuellem Schutz übersprungen wurden.
+The sync log additionally shows how many records were skipped due to manual protection.
 
 The metabox now shows the current conflict state:
 
-- **Synchronisiert**
-- **Manuelle Änderungen vorhanden**
-- **Konflikt: Remote-Update verfügbar**
+- **Synchronized**
+- **Manual edits present**
+- **Conflict: remote update available**
 
-Wenn ein Import-Snapshot vorhanden ist, kann der Datensatz per Button auf den letzten Importstand zurückgesetzt werden.
+If an import snapshot exists, a button allows resetting the record to the last imported state.
 
-Zusätzlich gibt es im Editor eine zweite Aktion:
+The editor also provides a second action:
 
-- **Override-Flag löschen:** entfernt den manuellen Schutz, ohne lokale Felder sofort zu verwerfen. Beim nächsten Import kann der Datensatz wieder aktualisiert werden.
-- **Auf letzten Importstand zurücksetzen:** verwirft lokale Änderungen und stellt die zuletzt importierten Metadaten direkt wieder her.
+- **Clear override flag:** removes manual protection without immediately discarding local fields. The next import can update the record again.
+- **Reset to last imported state:** discards local changes and restores the most recently imported metadata immediately.
 
-Nach beiden Aktionen erscheint oben auf der Bearbeitungsseite (`wp-admin/post.php`) eine Admin-Notice mit dem Ergebnis.
+After either action, an admin notice with the result appears at the top of the edit page (`wp-admin/post.php`).
 
 ## Conditional Rules (Work Type / Status)
 
-Die Metabox nutzt jetzt eine zentrale Rule-Matrix für feldabhängige Sichtbarkeit und Speichern:
+The metabox now uses a central rule matrix for visibility and persistence rules:
 
-- UI blendet bestimmte Felder/Abschnitte abhängig von `workType` ein/aus.
-- Serverseitig werden dieselben Regeln beim Speichern erzwungen.
-- Nicht erlaubte Werte werden verworfen (z. B. `publications` bei `book_chapter`).
-- Pflichtfelder werden abgesichert; wenn möglich wird ein bestehender Meta-Wert beibehalten.
+- The UI shows/hides specific fields/sections depending on `workType`.
+- Matching rules are enforced server-side during save.
+- Disallowed values are dropped (for example, `publications` for `book_chapter`).
+- Required fields are guarded; where possible, existing meta values are preserved.
 
-Aktuell umgesetzt:
+Currently implemented:
 
-- First/last page (`firstPage`/`lastPage`) nur für `book_chapter` sichtbar/zulässig.
-- Page breakdown (`pageBreakdown`) nur für nicht-`book_chapter`-Work-Types sichtbar/zulässig.
-- Publications (`publications`) nur für `monograph`, `edited_book`, `textbook`, `journal_issue`, `book_set`.
-- Issues (`issues`) nur für `journal_issue` sichtbar/zulässig.
-- Series (`series`) nur für nicht-`book_chapter`-Work-Types sichtbar/zulässig.
-- Bei `workStatus = active` wird `publicationDate` als Pflichtfeld behandelt.
+- First/last page (`firstPage`/`lastPage`) is visible/allowed only for `book_chapter`.
+- Page breakdown (`pageBreakdown`) is visible/allowed only for non-`book_chapter` work types.
+- Publications (`publications`) only for `monograph`, `edited_book`, `textbook`, `journal_issue`, `book_set`.
+- Issues (`issues`) only for `journal_issue`.
+- Series (`series`) only for non-`book_chapter` work types.
+- When `workStatus = active`, `publicationDate` is treated as required.
 
-Erweiterte Nested-Section-Regeln:
+Extended nested-section rules:
 
-- Bei `workStatus = active` wird für sichtbare Work Types mindestens eine Publication-Zeile erwartet.
-- Bei `workType = journal_issue` wird mindestens eine Issue-Zeile erwartet.
-- Für `workType = book_set` wird mindestens eine Series-Zeile erwartet.
-- Wenn ein Pflichtbereich leer gespeichert würde, wird (falls vorhanden) auf bestehende Meta-Werte zurückgefallen.
+- When `workStatus = active`, at least one publication row is expected for visible work types.
+- For `workType = journal_issue`, at least one issue row is expected.
+- For `workType = book_set`, at least one series row is expected.
+- If a required section would be saved empty, existing meta values are reused where available.
 
-Wenn Regeln beim Speichern eingreifen, erscheint eine Info-Notice im Editor.
+When rules intervene during save, an informational notice appears in the editor.
 
 ## Cover Image via WordPress Media
 
-Im Bereich **Basic Metadata** kann das Cover jetzt direkt über die WordPress-Medienbibliothek gewählt oder hochgeladen werden:
+In the **Basic Metadata** section, the cover can now be selected or uploaded directly via the WordPress media library:
 
-- Button **Select / Upload Cover** öffnet den WP Media Picker (nur Bilder).
-- Gewähltes Bild wird sofort als Vorschau angezeigt.
-- Der Button **Remove Cover** entfernt Bild-URL und Attachment-Verknüpfung.
-- Weiterhin kann alternativ manuell eine `coverUrl` eingetragen werden.
+- **Select / Upload Cover** opens the WP media picker (images only).
+- The selected image is shown immediately as a preview.
+- **Remove Cover** removes the image URL and attachment reference.
+- Alternatively, `coverUrl` can still be entered manually.
 
-Technische Speicherung:
+Technical storage:
 
-- `_thoth_cover_url` bleibt die führende URL für Thoth-Payload/Export.
-- `_thoth_cover_attachment_id` speichert optional die lokale WP-Attachment-ID.
+- `_thoth_cover_url` remains the primary URL used for Thoth payload/export.
+- `_thoth_cover_attachment_id` optionally stores the local WP attachment ID.
 
+## Next Steps (Phase 2+)
 
-
-## Nächste Schritte (Phase 2+)
-
-- Delta-Sync über WP-Cron
-- Export-Logik zurück zu Thoth
+- Delta sync via WP-Cron
+- Export logic back to Thoth
 
 ## Third-Party Licenses
 
-- Bundled dependency: `thoth-pub/thoth-client-php` (Apache-2.0). Their license and NOTICE files are included under `vendor/` where present. When redistributing, keep those license/NOTICE files intact to preserve attribution.
+- Bundled dependency: `thoth-pub/thoth-client-php` (Apache-2.0). License and NOTICE files are included under `vendor/` where present. When redistributing, keep those license/NOTICE files intact to preserve attribution.
 
 Proudly vibe coded!
